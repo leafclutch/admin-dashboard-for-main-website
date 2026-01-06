@@ -13,7 +13,6 @@ load_dotenv()
 app = FastAPI(title="Leafclutch backend")
 
 
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
