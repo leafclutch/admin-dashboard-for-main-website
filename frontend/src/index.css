@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+@theme {
+  /* Official Company Palette */
+  --color-primary-dark: #10193D;
+  --color-primary: #102359;
+  --color-accent-green: #3AE39E;
+  --color-accent-teal: #47C6B6;
+  --color-navy-text: #102359;
+  --color-background-light: #F8FAFC;
+
+
+  /* UI Surfaces */
+  --color-background-dark: #040d2e; /* Darker blue for that AI-style background */
+  --color-surface-glass: rgba(255, 255, 255, 0.03);
+  
+  /* Shadows */
+  --shadow-glow: 0 0 20px rgba(58, 227, 158, 0.15);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent; 
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1); 
+  border-radius: 10px;
+  transition: all 0.3s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #3AE39E; 
+}
+
+/* For Firefox */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
