@@ -23,9 +23,6 @@ class Project(Base):
     description = Column(String)
     # Project details
 
-    tech_stack = Column(JSONB)
-    # Simple list of technologies used
-
     project_link = Column(String)
     # External link (GitHub, live demo, etc.)
 

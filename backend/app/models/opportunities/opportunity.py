@@ -21,13 +21,7 @@ class Opportunity(Base):
     # Required
 
     description = Column(String)
-    # Job or internship description
-
-    duration = Column(String)
-    # e.g. "3 months", "Full-time"
-
-    compensation = Column(String)
-    # Kept as string to allow flexible formats
+    # Job or internship descriptionts
 
     location = Column(String)
     # Location or remote
