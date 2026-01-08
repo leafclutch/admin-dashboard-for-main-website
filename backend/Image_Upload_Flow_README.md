@@ -1,89 +1,105 @@
-# Image Upload Flow (Simple Guide)
+# 🖼️ Image Upload Flow - Developer Guide
 
-This guide explains how image upload works in the system.
-It is written in simple language so anyone can understand it.
-
----
-
-## Big Picture
-
-- The **backend does NOT store images**
-- Images are stored in **Cloudinary**
-- The backend stores **only the image URL**
-- Only **admins** can upload and save images
-
-The frontend handles the upload process.
+This guide explains how to implement image uploads in the frontend. We use a **Direct-to-Cloudinary** approach to keep the backend fast and scalable.
 
 ---
 
-## What the User Experiences
-
-1. User selects an image from their computer
-2. A small loading indicator is shown
-3. When upload is finished, the **Save** button becomes active
-4. User clicks **Save**
-5. Data is saved successfully
-
-To the user, this feels like **one simple action**.
+## 💡 Why this design?
+Instead of sending large image files to our backend, the frontend uploads them directly to **Cloudinary**. 
+*   **Backend's Job**: Acts as a "Security Guard" to give you a signed permission slip (Signature).
+*   **Frontend's Job**: Uploads the file to Cloudinary and gets a URL.
+*   **Final Step**: Save that URL to our database.
 
 ---
 
-## What Actually Happens (Behind the Scenes)
+## 🔄 The 3-Step Process
 
 ### Step 1: Get Upload Permission (Backend)
+Before uploading, you must ask our backend for a secure signature.
 
-Frontend first asks the backend for permission to upload an image.
-
-API:
-POST /admin/uploads/signature
-
-This step:
-- Confirms the user is an admin
-- Returns temporary permission details for uploading
-
----
-
-### Step 2: Upload Image to Cloudinary (Frontend)
-
-Using the permission from Step 1, frontend uploads the image directly to Cloudinary.
-
-Result:
-- Image is stored in Cloudinary
-- Cloudinary returns a public image URL
-
-Example URL:
-https://res.cloudinary.com/.../image.png
-
----
-
-### Step 3: Save Data (Backend)
-
-When the user clicks **Save**, frontend sends the image URL to the backend.
-
-Example:
+*   **Endpoint**: `POST /admin/uploads/signature`
+*   **Auth**: Requires Admin Bearer Token.
+*   **Response Format**:
+```json
 {
-  "photo_url": "https://res.cloudinary.com/.../image.png"
+    "cloud_name": "your_cloud_name",
+    "api_key": "123456789012345",
+    "timestamp": 1704710000,
+    "signature": "abcd1234efgh5678...",
+    "folder": "uploads"
 }
-
-The backend:
-- Saves the URL in the database
-- Does NOT upload or store the image itself
+```
 
 ---
 
-## Important Rules
+### Step 2: Upload to Cloudinary (External)
+Use the data from Step 1 to send the actual image file to Cloudinary.
 
-- Frontend uploads images, backend never does
-- Backend only accepts image URLs
-- Image upload happens before clicking Save
-- Save button should be disabled until upload finishes
+*   **Cloudinary API**: `https://api.cloudinary.com/v1_1/{cloud_name}/image/upload`
+*   **Method**: `POST` (Multipart Form Data)
+*   **Body Fields**:
+    1.  `file`: The actual image file.
+    2.  `api_key`: (From Step 1)
+    3.  `timestamp`: (From Step 1)
+    4.  `signature`: (From Step 1)
+    5.  `folder`: (From Step 1)
+
+**Response**: Cloudinary will return a large JSON. You only need the `secure_url`.
+```json
+{
+    "secure_url": "https://res.cloudinary.com/demo/image/upload/v1/uploads/sample.jpg",
+    ...
+}
+```
 
 ---
 
-## One-Line Summary
+### Step 3: Save the URL to our Database (Backend)
+Now that you have the `secure_url`, send it to the relevant backend endpoint (e.g., creating a Project, Member, or Service).
 
-Upload image → get image URL → click Save → backend stores the URL
+*   **Example Payload**:
+```json
+{
+    "title": "New Project",
+    "photo_url": "https://res.cloudinary.com/demo/image/upload/v1/uploads/sample.jpg",
+    ...
+}
+```
 
 ---
 
-End of document.
+## 🛠️ Frontend Implementation Example (JavaScript)
+
+```javascript
+// 1. Get Signature from our Backend
+const sigResponse = await fetch('/admin/uploads/signature', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}` }
+});
+const signData = await sigResponse.json();
+
+// 2. Upload directly to Cloudinary
+const formData = new FormData();
+formData.append('file', imageFile);
+formData.append('api_key', sigData.api_key);
+formData.append('timestamp', sigData.timestamp);
+formData.append('signature', sigData.signature);
+formData.append('folder', sigData.folder);
+
+const cloudResponse = await fetch(`https://api.cloudinary.com/v1_1/${sigData.cloud_name}/image/upload`, {
+    method: 'POST',
+    body: formData
+});
+const cloudData = await cloudResponse.json();
+
+// 3. Use the URL
+const finalImageUrl = cloudData.secure_url;
+console.log("Upload Success:", finalImageUrl);
+```
+
+---
+
+## ⚠️ Important Rules
+1.  **Don't send files to the backend**: The backend only accepts URLs (strings).
+2.  **Signatures are temporary**: Get a fresh signature right before every upload.
+3.  **Loading States**: Disable your "Save" button while the Cloudinary upload is in progress.
