@@ -14,8 +14,14 @@ export const mentorService = {
     return response.data;
   },
 
+  // GET /admin/mentors/{mentor_id}
+  getById: async (id: string): Promise<Mentor> => {
+    const response = await api.get<Mentor>(`/admin/mentors/${id}`);
+    return response.data;
+  },
+
   // PUT /admin/mentors/{mentor_id}
-  update: async (id: string, data: Partial<MentorPayload>): Promise<Mentor> => {
+  update: async (id: string, data: MentorPayload): Promise<Mentor> => {
     const response = await api.put<Mentor>(`/admin/mentors/${id}`, data);
     return response.data;
   },

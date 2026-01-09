@@ -25,10 +25,12 @@ export interface TrainingFormData {
   discount_value: number;
   discount_type: DiscountType;
   benefits: string[];
-  mentor_ids: string[]; 
+  mentor_ids: string[];
 }
 
-export interface TrainingCreatePayload {
+// Since Create and Update use the exact same fields,
+// let's use a single source of truth.
+export interface TrainingPayload {
   title: string;
   description: string;
   photo_url: string;
@@ -39,16 +41,7 @@ export interface TrainingCreatePayload {
   mentor_ids: string[];
 }
 
-export interface TrainingUpdatePayload {
-  title: string;
-  description: string;
-  photo_url: string;
-  base_price: number;
-  discount_type: DiscountType;
-  discount_value: number;
-  benefits: string[];
-  mentors: {
-    name: string;
-    photo_url: string;
-  }[]; 
-}
+// You can keep these as aliases if you want to be explicit,
+// but they MUST point to the same structure.
+export type TrainingCreatePayload = TrainingPayload;
+export type TrainingUpdatePayload = TrainingPayload;
