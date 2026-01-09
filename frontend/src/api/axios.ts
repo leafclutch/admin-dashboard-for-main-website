@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://admin-dashboard-for-main-website.onrender.com",
+  baseURL: import.meta.env.VITE_API_URL,
 });
 
 // for the logout

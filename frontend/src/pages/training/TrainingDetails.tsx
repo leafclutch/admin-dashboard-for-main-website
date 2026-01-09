@@ -114,10 +114,10 @@ const TrainingDetails: React.FC = () => {
                 </div>
                 <div className="flex items-baseline gap-3 mb-1">
                   <span className="text-4xl font-extrabold text-[#3AE39E]">
-                    ${program.effective_price}
+                    रु{program.effective_price}
                   </span>
                   <span className="text-lg text-slate-400 line-through font-medium">
-                    ${program.base_price}
+                    रु{program.base_price}
                   </span>
                 </div>
               </div>

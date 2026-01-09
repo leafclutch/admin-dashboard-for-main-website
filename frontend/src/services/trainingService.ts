@@ -3,13 +3,20 @@ import type {
   TrainingProgram,
   TrainingFormData,
   TrainingCreatePayload,
+  TrainingUpdatePayload,
 } from "../types/training";
-import type { Mentor } from "../types/mentor";
+
+const cleanPrice = (price: string | number | null | undefined): number => {
+  if (price === null || price === undefined) return 0;
+  return typeof price === "number" ? price : parseFloat(price) || 0;
+};
 
 export const trainingService = {
   getAll: async (search?: string): Promise<TrainingProgram[]> => {
     const { data } = await api.get("/admin/trainings/", {
-      params: search ? { search } : {},
+      // API defaults to 20 items. We request 100 to ensure the user sees all trainings.
+      // We keep 'search' in case the backend supports it, though docs only list pagination.
+      params: { ...(search ? { search } : {}), page_size: 100 },
     });
     return data?.items || (Array.isArray(data) ? data : []);
   },
@@ -24,11 +31,11 @@ export const trainingService = {
       title: formData.title,
       description: formData.description,
       photo_url: formData.photo_url,
-      base_price: Number(formData.base_price) || 0,
+      base_price: cleanPrice(formData.base_price),
       discount_type: formData.discount_type,
-      discount_value: Number(formData.discount_value) || 0,
+      discount_value: cleanPrice(formData.discount_value),
       benefits: formData.benefits.filter((b) => b.trim() !== ""),
-      mentor_ids: formData.mentor_ids, 
+      mentor_ids: formData.mentor_ids,
     };
 
     const { data } = await api.post<TrainingProgram>(
@@ -40,25 +47,17 @@ export const trainingService = {
 
   update: async (
     id: string,
-    formData: TrainingFormData,
-    allMentors: Mentor[]
+    formData: TrainingFormData
   ): Promise<TrainingProgram> => {
-    const selectedMentorObjects = allMentors
-      .filter((m) => formData.mentor_ids.includes(m.id))
-      .map((m) => ({
-        name: m.name,
-        photo_url: m.photo_url || "",
-      }));
-
-    const payload = {
+    const payload: TrainingUpdatePayload = {
       title: formData.title,
       description: formData.description,
       photo_url: formData.photo_url,
-      base_price: Number(formData.base_price) || 0,
+      base_price: cleanPrice(formData.base_price),
       discount_type: formData.discount_type,
-      discount_value: Number(formData.discount_value) || 0,
+      discount_value: cleanPrice(formData.discount_value),
       benefits: formData.benefits.filter((b) => b.trim() !== ""),
-      mentors: selectedMentorObjects, 
+      mentor_ids: formData.mentor_ids,
     };
 
     const { data } = await api.put<TrainingProgram>(

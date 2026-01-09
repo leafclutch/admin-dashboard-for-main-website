@@ -12,6 +12,13 @@ import { serviceService } from "../../services/serviceService";
 import { uploadImageFlow } from "../../utils/cloudinary";
 import { toast } from "sonner";
 
+type SyncableFeedback = {
+  id?: string;
+  client_name: string;
+  feedback_description: string;
+  rating: number;
+};
+
 interface ProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -29,6 +36,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
     { id: string; name: string }[]
   >([]);
   const [techSearch, setTechSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [preview, setPreview] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -40,7 +48,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
     reset,
     setValue,
     control,
-    formState: { isSubmitting, errors },
+    formState: { isSubmitting },
   } = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
@@ -61,13 +69,19 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
   const selectedTechIds = useWatch({ control, name: "tech_ids" }) || [];
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(techSearch);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [techSearch]);
+
+  useEffect(() => {
     const loadData = async () => {
       try {
         const techs = await serviceService.getTechs();
         setAvailableTechs(techs);
 
         if (initialData) {
-          // Map string names from backend to UUIDs from availableTechs
           const mappedTechIds = (initialData.techs || []).map((techName) => {
             const found = techs.find((t) => t.name === techName);
             return found ? found.id : techName;
@@ -113,7 +127,6 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
           (t) => t.name.toLowerCase() === val.toLowerCase()
         );
         const toAdd = existing ? existing.id : val;
-
         if (!selectedTechIds.includes(toAdd)) {
           setValue("tech_ids", [...selectedTechIds, toAdd], {
             shouldValidate: true,
@@ -136,6 +149,35 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
   const onSubmit = async (data: ProjectFormData) => {
     setIsUploading(true);
     const mainToast = toast.loading("Processing project...");
+
+    const syncFeedbacks = async (
+      projectId: string,
+      original: SyncableFeedback[],
+      current: SyncableFeedback[] | undefined
+    ) => {
+      const currentSafe = current || [];
+
+      const currentIds = new Set(
+        currentSafe.filter((f) => f.id).map((f) => f.id!)
+      );
+
+      const toDelete = (original || []).filter(
+        (f) => f.id && !currentIds.has(f.id)
+      );
+
+      const toAdd = currentSafe.filter((f) => !f.id);
+
+      const deletePromises = toDelete.map((f) =>
+        projectService.deleteFeedback(f.id!)
+      );
+
+      const addPromises = toAdd.map((f) =>
+        projectService.addFeedback(projectId, f)
+      );
+
+      await Promise.all([...deletePromises, ...addPromises]);
+    };
+
     try {
       const finalTechIds = await Promise.all(
         data.tech_ids.map(async (idOrName) => {
@@ -152,24 +194,28 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
       }
 
       const payload = {
-        title: data.title,
-        description: data.description,
-        photo_url: finalPhotoUrl,
-        project_link: data.project_link,
+        ...data,
         tech_ids: finalTechIds,
+        photo_url: finalPhotoUrl,
       };
 
       let project: Project;
       if (initialData?.id) {
         project = await projectService.update(initialData.id, payload);
+        await syncFeedbacks(
+          project.id,
+          initialData.feedbacks || [],
+          data.feedbacks || []
+        );
       } else {
         project = await projectService.create(payload);
-      }
-
-      if (data.feedbacks && data.feedbacks.length > 0) {
-        await Promise.all(
-          data.feedbacks.map((fb) => projectService.addFeedback(project.id, fb))
-        );
+        if (data.feedbacks && data.feedbacks.length > 0) {
+          await Promise.all(
+            data.feedbacks.map((fb) =>
+              projectService.addFeedback(project.id, fb)
+            )
+          );
+        }
       }
 
       toast.success(initialData ? "Project updated" : "Project created", {
@@ -187,6 +233,10 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
   };
 
   if (!isOpen) return null;
+
+  const filteredTechs = availableTechs.filter((t) =>
+    t.name.toLowerCase().includes(debouncedSearch.toLowerCase())
+  );
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#102359]/40 backdrop-blur-sm">
@@ -208,6 +258,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
           onSubmit={handleSubmit(onSubmit)}
           className="flex-1 overflow-y-auto p-8 no-scrollbar space-y-8"
         >
+          {/* Main Info Section */}
           <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-4">
               <div
@@ -250,11 +301,6 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                 placeholder="Live Project Link (https://...)"
                 className="w-full px-5 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none focus:border-[#3AE39E]"
               />
-              {errors.project_link && (
-                <p className="text-red-500 text-[10px] font-bold px-2">
-                  {errors.project_link.message}
-                </p>
-              )}
             </div>
 
             <div className="space-y-4">
@@ -263,25 +309,16 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                 placeholder="Project Title"
                 className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold text-[#102359] focus:border-[#3AE39E]"
               />
-              {errors.title && (
-                <p className="text-red-500 text-[10px] font-bold px-2">
-                  {errors.title.message}
-                </p>
-              )}
               <textarea
                 {...register("description")}
                 placeholder="Short Description..."
                 rows={4}
                 className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none text-slate-600 font-medium focus:border-[#3AE39E]"
               />
-              {errors.description && (
-                <p className="text-red-500 text-[10px] font-bold px-2">
-                  {errors.description.message}
-                </p>
-              )}
             </div>
           </section>
 
+          {/* Tech Stack Section */}
           <section className="space-y-3">
             <div className="flex items-center gap-2 text-slate-400 text-[10px] font-black uppercase tracking-wider">
               <Cpu size={16} /> Tech Stack
@@ -295,56 +332,23 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                 placeholder="Type tech and press Enter..."
                 className="w-full px-5 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none font-bold text-sm focus:border-[#3AE39E]"
               />
-
-              {techSearch && (
+              {debouncedSearch && (
                 <div className="absolute z-10 w-full mt-1 bg-white border border-slate-100 rounded-xl shadow-xl max-h-48 overflow-y-auto">
-                  {availableTechs
-                    .filter((t) =>
-                      t.name.toLowerCase().includes(techSearch.toLowerCase())
-                    )
-                    .map((t) => (
-                      <div
-                        key={t.id}
-                        onClick={() => {
-                          if (!selectedTechIds.includes(t.id))
-                            setValue("tech_ids", [...selectedTechIds, t.id], {
-                              shouldValidate: true,
-                            });
-                          setTechSearch("");
-                        }}
-                        className="px-4 py-2 hover:bg-[#3AE39E]/10 cursor-pointer text-sm font-bold text-[#102359]"
-                      >
-                        {t.name}
-                      </div>
-                    ))}
-
-                  {!availableTechs.some(
-                    (t) => t.name.toLowerCase() === techSearch.toLowerCase()
-                  ) && (
+                  {filteredTechs.map((t) => (
                     <div
+                      key={t.id}
                       onClick={() => {
-                        if (!selectedTechIds.includes(techSearch.trim())) {
-                          setValue(
-                            "tech_ids",
-                            [...selectedTechIds, techSearch.trim()],
-                            { shouldValidate: true }
-                          );
-                        }
+                        if (!selectedTechIds.includes(t.id))
+                          setValue("tech_ids", [...selectedTechIds, t.id], {
+                            shouldValidate: true,
+                          });
                         setTechSearch("");
                       }}
-                      className="px-4 py-3 border-t border-slate-50 bg-slate-50/50 hover:bg-[#3AE39E]/20 cursor-pointer flex items-center justify-between group/add"
+                      className="px-4 py-2 hover:bg-[#3AE39E]/10 cursor-pointer text-sm font-bold text-[#102359]"
                     >
-                      <span className="text-sm font-bold text-slate-500">
-                        Add{" "}
-                        <span className="text-[#102359]">"{techSearch}"</span>{" "}
-                        as new tech
-                      </span>
-                      <Plus
-                        size={16}
-                        className="text-[#3AE39E] group-hover/add:scale-125 transition-transform"
-                      />
+                      {t.name}
                     </div>
-                  )}
+                  ))}
                 </div>
               )}
             </div>
@@ -371,13 +375,9 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                 );
               })}
             </div>
-            {errors.tech_ids && (
-              <p className="text-red-500 text-[10px] font-bold px-2">
-                {errors.tech_ids.message}
-              </p>
-            )}
           </section>
 
+          {/* Feedbacks Section */}
           <section className="space-y-4 pt-4 border-t border-slate-100">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
@@ -401,12 +401,12 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
               {fields.map((field, index) => (
                 <div
                   key={field.id}
-                  className="p-4 bg-[#F8FAFC] rounded-2xl border border-slate-100 relative"
+                  className="p-4 bg-[#F8FAFC] rounded-2xl border border-slate-100 relative group"
                 >
                   <button
                     type="button"
                     onClick={() => remove(index)}
-                    className="absolute -top-2 -right-2 w-8 h-8 bg-white text-red-400 rounded-full flex items-center justify-center shadow-md border border-slate-100"
+                    className="absolute -top-2 -right-2 w-8 h-8 bg-white text-red-400 rounded-full flex items-center justify-center shadow-md border border-slate-100 hover:bg-red-50 transition-colors z-10"
                   >
                     <Trash2 size={16} />
                   </button>
@@ -414,7 +414,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                     <input
                       {...register(`feedbacks.${index}.client_name`)}
                       placeholder="Client Name"
-                      className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold outline-none"
+                      className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-[#3AE39E]"
                     />
                     <select
                       {...register(`feedbacks.${index}.rating`, {
@@ -432,7 +432,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                   <textarea
                     {...register(`feedbacks.${index}.feedback_description`)}
                     placeholder="Feedback Description..."
-                    className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none"
+                    className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-[#3AE39E]"
                   />
                 </div>
               ))}

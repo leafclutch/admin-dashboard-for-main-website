@@ -141,7 +141,7 @@ const TrainingForm: React.FC = () => {
       const submissionData = { ...cleanedFormData, photo_url: finalPhotoUrl };
 
       if (isEdit && id) {
-        await trainingService.update(id, submissionData, allMentors);
+        await trainingService.update(id, submissionData);
         toast.success("Program updated successfully", { id: mainToast });
       } else {
         await trainingService.create(submissionData);
