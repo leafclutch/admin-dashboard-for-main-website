@@ -24,8 +24,12 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (error.config.url === "/auth/login") {
+      return Promise.reject(error);
+    }
+
     if (error.response && error.response.status === 401) {
-      console.warn("Token expired. Logging out...");
+      console.warn("Token expired or invalid, logging out...");
       logout();
     }
     return Promise.reject(error);

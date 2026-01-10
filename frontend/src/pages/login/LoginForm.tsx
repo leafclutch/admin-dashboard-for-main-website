@@ -25,7 +25,7 @@ const LoginForm: React.FC = () => {
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
-    mode: "onBlur", // Validates when user leaves the field
+    mode: "onBlur",
   });
 
   const onSubmit = async (data: LoginFormData) => {
