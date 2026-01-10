@@ -38,7 +38,7 @@ class TrainingUpdate(BaseModel):
     discount_value: Optional[float]
 
     benefits: Optional[List[str]]
-    mentors: Optional[List[MentorInput]]
+    mentor_ids: Optional[List[UUID]]
 
 
 class MentorResponse(BaseModel):

@@ -1,5 +1,5 @@
 import enum
 
-class OpportunityType(enum.Enum):
+class OpportunityType(str, enum.Enum):
     JOB = "JOB"
     INTERNSHIP = "INTERNSHIP"

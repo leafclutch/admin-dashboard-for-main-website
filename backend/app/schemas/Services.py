@@ -1,6 +1,10 @@
+import datetime
+from decimal import Decimal
 from typing import List, Optional
+from uuid import UUID
 from pydantic import BaseModel
 from enum import Enum
+from datetime import datetime
 
 
 class DiscountType(str, Enum):
@@ -13,12 +17,12 @@ class ServiceCreate(BaseModel):
     description: Optional[str] = None
     photo_url: Optional[str] = None
 
-    tech_stack: List[str]
-    offerings: List[str]
+    tech_ids: List[UUID]
+    offering_ids: List[UUID]
 
-    base_price: float
+    base_price: Decimal
     discount_type: Optional[DiscountType] = None
-    discount_value: Optional[float] = None
+    discount_value: Optional[Decimal] = None
 
 
 class ServiceUpdate(BaseModel):
@@ -26,22 +30,24 @@ class ServiceUpdate(BaseModel):
     description: Optional[str] = None
     photo_url: Optional[str] = None
 
-    tech_stack: Optional[List[str]] = None
-    offerings: Optional[List[str]] = None
+    tech_ids: Optional[List[UUID]] = None
+    offering_ids: Optional[List[UUID]] = None
 
-    base_price: Optional[float] = None
+    base_price: Optional[Decimal] = None
     discount_type: Optional[DiscountType] = None
-    discount_value: Optional[float] = None
+    discount_value: Optional[Decimal] = None
 
 
 class ServiceResponse(BaseModel):
-    id: str
+    id: UUID
     title: str
     description: Optional[str]
     photo_url: Optional[str]
 
-    tech_stack: List[str]
+    techs: List[str]
     offerings: List[str]
 
-    base_price: float
-    effective_price: float
+    base_price: Decimal
+    effective_price: Decimal
+    created_at: datetime
+    updated_at: Optional[datetime]    

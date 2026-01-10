@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query # Tools to build the API
 from app.db.session import get_db
 from sqlalchemy.orm import Session, selectinload
 from app.schemas.training import TrainingCreate, TrainingUpdate, TrainingResponse, MentorResponse
-from app.auth.deps import get_current_user
+from app.auth.deps import get_current_user # To check if the user is logged in
 from typing import List
 from decimal import Decimal
 from app.models.training.training import Training
@@ -12,11 +12,13 @@ from app.models.training.training_mentor import TrainingMentor
 from app.models.pricing.enums import DiscountType
 from uuid import UUID
 
+# Setup the router for all training and course links
 router = APIRouter(
     prefix="/admin/trainings",
     tags=["Trainings"]
 )
 # ---------- shared pricing logic (single source of truth) ----------
+# Helper function to calculate the final price after discount
 def calculate_effective_price(base_price: Decimal, discount_value: Decimal, discount_type: DiscountType | None,) -> Decimal:
     if not discount_value or not discount_type:
         return base_price
@@ -25,6 +27,7 @@ def calculate_effective_price(base_price: Decimal, discount_value: Decimal, disc
     return base_price - discount_value
 
 # ---------- shared api response (used by CREATE, GET, UPDATE) ----------
+# Helper function to format the training data for the frontend
 def training_response(training:Training)->TrainingResponse:
         effective_price = calculate_effective_price(
         training.base_price,
@@ -52,13 +55,14 @@ def training_response(training:Training)->TrainingResponse:
     )
 
 # ==================  Crud operations ======================#
+# 1. Create a new training course
 @router.post("/", response_model=TrainingResponse)
 def create_training(
     data: TrainingCreate,
     db: Session = Depends(get_db),
     user=Depends(get_current_user)
 ):
-    # create base training
+    # Step 1: Create the main training record
     training = Training(
         title=data.title,
         description=data.description,
@@ -68,9 +72,9 @@ def create_training(
         discount_value=data.discount_value,
     )
     db.add(training)
-    db.flush()  # get training.id
+    db.flush()  # Get the ID for the next steps
 
-    # insert benefits
+    # Step 2: Add the benefits list
     for benefit_text in data.benefits:
         db.add(
             TrainingBenefit(
@@ -79,7 +83,7 @@ def create_training(
             )
         )
 
-    # insert mentors (loop may be empty — OK)
+    # Step 3: Link the mentors to this training
     for mentor_id in data.mentor_ids:
         mentor = db.query(Mentor).filter(Mentor.id == mentor_id).first()
 
@@ -107,6 +111,7 @@ def create_training(
 
 
 # ================== LIST TRAININGS ==================
+# 2. Get a list of all training courses (with pagination)
 @router.get("/", response_model=dict)
 def list_trainings(
     page: int = Query(1, ge=1),          # 1-based pagination
@@ -114,9 +119,9 @@ def list_trainings(
     db: Session = Depends(get_db),
     user=Depends(get_current_user),
 ):
-    # total count 
+    # Step 1: Count the total number of training courses
     total = db.query(Training).count()
-    # paginated query with eager loading (no N+1)
+    # Step 2: Get the list of courses for the current page
     trainings = (
         db.query(Training).options(
             selectinload(Training.benefits),          # load benefits
@@ -139,9 +144,10 @@ def list_trainings(
 
     
 
+# 3. Get details of one specific training course
 @router.get("/{training_id}", response_model=TrainingResponse)
 def get_training_detail(training_id: UUID, db: Session =Depends(get_db), user=Depends(get_current_user)):
-    # fetch training with relations (no N+1)
+    # Step 1: Find the training course in the database
     training = (
         db.query(Training)
         .options(
@@ -157,6 +163,7 @@ def get_training_detail(training_id: UUID, db: Session =Depends(get_db), user=De
 
 # ================== UPDATE TRAINING ==================
 
+# 4. Update an existing training course
 @router.put("/{training_id}", response_model=TrainingResponse)
 def update_training(
     training_id: UUID,
@@ -178,7 +185,7 @@ def update_training(
     if not training:
         raise HTTPException(status_code=404, detail="Training not found")
     
-     # ---------- update scalar fields ----------
+     # Step 1: Update basic fields
     training.title = data.title
     training.description = data.description
     training.photo_url = data.photo_url
@@ -186,26 +193,28 @@ def update_training(
     training.discount_type = data.discount_type
     training.discount_value = data.discount_value
 
-    # ---------- replace benefits ----------
-    training.benefits.clear()  # authoritative list
-    for benefit_text in data.benefits:
-        training.benefits.append(
-            TrainingBenefit(text=benefit_text)
-        )
+    # Step 2: Replace the benefits list
+    if data.benefits is not None:
+        training.benefits.clear() 
+        for benefit_text in data.benefits:
+            training.benefits.append(
+                TrainingBenefit(text=benefit_text)
+            )
     
-    # ---------- replace mentors ----------
-    training.training_mentors.clear()  # authoritative list
+    # Step 3: Replace the mentors list
+    if data.mentor_ids is not None:
+        training.training_mentors.clear() 
 
-    for mentor_id in data.mentor_ids:
-        mentor = db.query(Mentor).filter(Mentor.id == mentor_id).first()
+        for mentor_id in data.mentor_ids:
+            mentor = db.query(Mentor).filter(Mentor.id == mentor_id).first()
 
-        if not mentor:
-            raise HTTPException(400, f"Mentor {mentor_id} does not exist")
-     
+            if not mentor:
+                raise HTTPException(400, f"Mentor {mentor_id} does not exist")
         
-        training.training_mentors.append(
-            TrainingMentor(mentor_id=mentor.id)
-        )
+            
+            training.training_mentors.append(
+                TrainingMentor(mentor_id=mentor.id)
+            )
      # single commit = atomic update
     db.commit()
     db.refresh(training)
@@ -213,19 +222,20 @@ def update_training(
     return training_response(training)
     
 
+# 5. Delete a training course
 @router.delete("/{training_id}", status_code=204)
 def delete_training(
     training_id: UUID,
     db: Session = Depends(get_db),
     user=Depends(get_current_user),
 ):
-    # fetch training
+    # Step 1: Find the training course in the database
     training = db.query(Training).filter(Training.id == training_id).first()
 
     if not training:
         raise HTTPException(status_code=404, detail="Training not found")
     
-     # hard delete (FK CASCADE handles benefits & mentors)
+    # Step 2: Delete the course and save changes
     db.delete(training)
     db.commit()
 

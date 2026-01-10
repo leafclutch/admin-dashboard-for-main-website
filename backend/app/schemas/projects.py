@@ -1,19 +1,23 @@
 from typing import List, Optional
-from pydantic import BaseModel
+from uuid import UUID
+from pydantic import BaseModel, Field
+from datetime import datetime
 
 
 class FeedbackCreate(BaseModel):
     client_name: str
     client_photo: Optional[str] = None
     feedback_description: str
-    rating: int
+    rating: int = Field(..., ge=1, le=5)
 
 
 class FeedbackResponse(BaseModel):
+    id: UUID
     client_name: str
     client_photo: Optional[str]
     feedback_description: str
     rating: int
+
 
 
 class ProjectCreate(BaseModel):
@@ -21,10 +25,8 @@ class ProjectCreate(BaseModel):
     description: Optional[str] = None
     photo_url: Optional[str] = None
 
-    tech_stack: List[str]
+    tech_ids: List[UUID]
     project_link: Optional[str] = None
-
-    feedbacks: Optional[List[FeedbackCreate]] = []
 
 
 class ProjectUpdate(BaseModel):
@@ -32,19 +34,20 @@ class ProjectUpdate(BaseModel):
     description: Optional[str] = None
     photo_url: Optional[str] = None
 
-    tech_stack: Optional[List[str]] = None
+    tech_ids: Optional[List[UUID]] = None
     project_link: Optional[str] = None
-
-    feedbacks: Optional[List[FeedbackCreate]] = None
 
 
 class ProjectResponse(BaseModel):
-    id: str
+    id: UUID
     title: str
     description: Optional[str]
     photo_url: Optional[str]
 
-    tech_stack: List[str]
+    techs: List[str]
     project_link: Optional[str]
 
     feedbacks: List[FeedbackResponse]
+    created_at: datetime
+    updated_at: Optional[datetime]  
+    
