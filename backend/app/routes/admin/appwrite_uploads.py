@@ -23,6 +23,8 @@ def get_storage() -> Storage:
     client.set_key(APPWRITE_API_KEY)
     return Storage(client)
 
+MAX_IMAGE_SIZE = 1_000_000  # 1 MB
+
 @router.post("/image")
 async def upload_image(
     file: UploadFile = File(...),
@@ -34,17 +36,29 @@ async def upload_image(
     storage = get_storage()
 
     try:
+        # read file bytes
         file_bytes = await file.read()
+
+        # Validate file size
+        if len(file_bytes) > MAX_IMAGE_SIZE:
+            raise HTTPException(
+                status_code=400,
+                detail="Image too large (max 1MB allowed)"
+            )
+        #  wrap for appwrite
         input_file = InputFile.from_bytes(
             file_bytes,
             filename=file.filename,
             mime_type = file.content_type,
         )
+        # upload
         result = storage.create_file(
             bucket_id=APPWRITE_BUCKET_ID,
             file_id=ID.unique(),
             file=input_file,
         )
+    except HTTPException:
+        raise
     except Exception as e:
         print("APPWRITE ERROR:", e)
         raise HTTPException(status_code=500, detail=str(e))
