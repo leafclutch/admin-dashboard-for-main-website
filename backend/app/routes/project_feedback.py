@@ -63,7 +63,7 @@ def create_project_feedback(
 def list_project_feedbacks(
     project_id: UUID,
     db: Session = Depends(get_db),
-    admin = Depends(get_current_user),
+   
 ):
     # Step 1: Check if the project exists
     project = (

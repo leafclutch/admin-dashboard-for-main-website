@@ -54,7 +54,7 @@ def create_service_offering(
 @router.get("", response_model=list[ServiceOfferingResponse])
 def list_service_offerings(
     db: Session = Depends(get_db),
-    admin = Depends(get_current_user),
+    
 ):
     # Step 1: Get all service features from the database
     return db.query(ServiceOffering).all()

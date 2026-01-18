@@ -57,7 +57,7 @@ def create_member(
 @router.get("", response_model=list[MemberResponse])
 def list_members(
     db: Session = Depends(get_db),
-    admin = Depends(get_current_user),
+    
 ):
     # Step 1: Get every member from the database
     return db.query(Member).all()
@@ -66,7 +66,7 @@ def list_members(
 @router.get("/teams", response_model=list[MemberResponse])
 def list_team_members(
     db: Session = Depends(get_db),
-    admin = Depends(get_current_user),
+    
 ):
     # Step 1: Get only members who are marked as "TEAM" and are visible
     return (
@@ -82,7 +82,7 @@ def list_team_members(
 @router.get("/interns", response_model=list[MemberResponse])
 def list_intern_members(
     db: Session = Depends(get_db),
-    admin = Depends(get_current_user),
+    
 ):
     # Step 1: Get only members who are marked as "INTERN" and are visible
     return (
@@ -136,7 +136,7 @@ def update_member(
 def get_team_member(
     member_id: UUID,
     db: Session = Depends(get_db),
-    admin = Depends(get_current_user),
+   
 ):
     # Step 1: Find the specific team member by their ID
     member = (
@@ -162,7 +162,7 @@ def get_team_member(
 def get_intern_member(
     member_id: UUID,
     db: Session = Depends(get_db),
-    admin = Depends(get_current_user),
+    
 ):
     # Step 1: Find the specific intern by their ID
     member = (
@@ -189,7 +189,7 @@ def get_intern_member(
 def get_member_admin(
     member_id: UUID,
     db: Session = Depends(get_db),
-    admin = Depends(get_current_user),
+    
 ):
     # Admin must be able to fetch any member (visible or hidden)
     member = (

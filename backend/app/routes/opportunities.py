@@ -175,7 +175,6 @@ def list_opportunities(
 def get_opportunity(
     opportunity_id: UUID,
     db: Session = Depends(get_db),
-    admin = Depends(get_current_user),
 ):
     opportunity_obj = db.get(Opportunity, opportunity_id)
     if not opportunity_obj:

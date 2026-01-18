@@ -73,7 +73,7 @@ def create_project(
 @router.get("/", response_model=list[ProjectResponse])
 def list_projects(
     db: Session = Depends(get_db),
-    admin = Depends(get_current_user),
+    
 ):
     # Step 1: Get all projects from the database
     projects = db.query(Project).all()
@@ -126,7 +126,7 @@ def list_projects(
 def get_project_detail(
     project_id: UUID,
     db: Session = Depends(get_db),
-    admin = Depends(get_current_user),
+    
 ):
     # Step 1: Find the project in the database
     project = (

@@ -53,7 +53,7 @@ def create_service_tech(
 @router.get("", response_model=list[ServiceTechResponse])
 def list_service_techs(
     db: Session = Depends(get_db),
-    admin = Depends(get_current_user),
+    
 ):
     # Simple list for admin selection
     return db.query(ServiceTech).all()

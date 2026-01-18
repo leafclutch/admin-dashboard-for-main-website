@@ -94,7 +94,7 @@ def create_service(
 @router.get("/", response_model=list[ServiceResponse])
 def list_services(
     db: Session = Depends(get_db),
-    admin = Depends(get_current_user),
+    
 ):
     # Step 1: Get all services from the database
     services = db.query(Service).all()
@@ -142,7 +142,7 @@ def list_services(
 def get_service(
     service_id: UUID,
     db: Session = Depends(get_db),
-    admin = Depends(get_current_user),
+    
 ):
     # Step 1: Find the service in the database
     service = (

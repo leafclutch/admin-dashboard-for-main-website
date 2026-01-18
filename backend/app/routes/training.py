@@ -117,7 +117,7 @@ def list_trainings(
     page: int = Query(1, ge=1),          # 1-based pagination
     page_size: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
-    user=Depends(get_current_user),
+    
 ):
     # Step 1: Count the total number of training courses
     total = db.query(Training).count()
@@ -146,7 +146,7 @@ def list_trainings(
 
 # 3. Get details of one specific training course
 @router.get("/{training_id}", response_model=TrainingResponse)
-def get_training_detail(training_id: UUID, db: Session =Depends(get_db), user=Depends(get_current_user)):
+def get_training_detail(training_id: UUID, db: Session =Depends(get_db)):
     # Step 1: Find the training course in the database
     training = (
         db.query(Training)
