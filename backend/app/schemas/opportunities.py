@@ -1,5 +1,7 @@
 from typing import List, Optional
 from enum import Enum
+from datetime import datetime
+
 
 from pydantic import BaseModel, model_validator
 
@@ -104,6 +106,7 @@ class OpportunityResponse(BaseModel):
     title: str
     description: Optional[str]
     location: Optional[str]
+    created_at: datetime
 
     type: OpportunityType
 
