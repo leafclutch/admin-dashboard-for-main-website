@@ -55,6 +55,7 @@ def create_mentor(
     mentor = Mentor(
         name=name_normalized,
         photo_url=data.photo_url,
+        specialization=data.specialization,
     )
 
     # Step 4: Save to database

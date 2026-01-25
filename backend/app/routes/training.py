@@ -47,6 +47,7 @@ def training_response(training:Training)->TrainingResponse:
                 id=str(m.mentor.id),
                 name=m.mentor.name,
                 photo_url=m.mentor.photo_url,
+                specialization=m.mentor.specialization,
             )
             for m in training.training_mentors
         ],
