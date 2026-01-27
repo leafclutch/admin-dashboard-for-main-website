@@ -40,6 +40,7 @@ def training_response(training:Training)->TrainingResponse:
         description=training.description,
         photo_url=training.photo_url,
         base_price=training.base_price,
+        enroll_from_price=training.enroll_from_price,
         effective_price=effective_price,
         benefits=[b.text for b in training.benefits],  # read from DB, not request
         mentors=[
@@ -69,6 +70,7 @@ def create_training(
         description=data.description,
         photo_url=data.photo_url,
         base_price=data.base_price,
+        enroll_from_price=data.enroll_from_price,
         discount_type=data.discount_type,
         discount_value=data.discount_value,
     )

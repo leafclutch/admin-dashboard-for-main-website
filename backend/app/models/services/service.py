@@ -29,6 +29,8 @@ class Service(Base):
     base_price = Column(Numeric(10, 2), nullable=False)
     # Main pricing value
 
+
+
     discount_type = Column(Enum(DiscountType), nullable=True)
     # Optional discount
 

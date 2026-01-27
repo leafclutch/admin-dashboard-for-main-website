@@ -30,6 +30,9 @@ class Training(Base):
     base_price = Column(Numeric(10, 2), nullable=False)
     # Base price is the source of truth for pricing
 
+    enroll_from_price = Column(Numeric(10, 2), nullable=True)
+    # Price for enrollment
+
     discount_type = Column(Enum(DiscountType), nullable=True)
     # Discount type is optional because not all trainings have discounts
 

@@ -27,6 +27,7 @@ def create_service(
         description=payload.description,
         photo_url=payload.photo_url,
         base_price=payload.base_price,
+        enroll_from_price=payload.enroll_from_price,
         discount_type=payload.discount_type,
         discount_value=payload.discount_value,
     )

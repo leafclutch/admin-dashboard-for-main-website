@@ -21,6 +21,7 @@ class TrainingCreate(BaseModel):
     photo_url: Optional[str]
 
     base_price: float
+    enroll_from_price: Optional[float]
     discount_type: Optional[DiscountType]
     discount_value: Optional[float]
 
@@ -34,6 +35,7 @@ class TrainingUpdate(BaseModel):
     photo_url: Optional[str]
 
     base_price: Optional[float]
+    enroll_from_price: Optional[float]
     discount_type: Optional[DiscountType]
     discount_value: Optional[float]
 
@@ -53,6 +55,7 @@ class TrainingResponse(BaseModel):
     photo_url: Optional[str]
 
     base_price: float
+    enroll_from_price: Optional[float]
     effective_price: float
 
     benefits: List[str]
